@@ -61,6 +61,10 @@ void usqlite_row_type_initialize() {
 // ------------------------------------------------------------------------------
 
 static mp_obj_t keys(usqlite_cursor_t *cursor) {
+    if (!cursor || !cursor->stmt) {
+        return mp_const_none;
+    }
+    
     int columns = sqlite3_data_count(cursor->stmt);
 
     mp_obj_tuple_t *o = MP_OBJ_TO_PTR(mp_obj_new_tuple(columns, NULL));
@@ -86,7 +90,13 @@ static void usqlite_row_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest) {
         switch (attr)
         {
             case MP_QSTR_keys:
-                dest[0] = keys(self->items[self->len]);
+                // Validate that the tuple has the cursor pointer
+                if (self->len > 0 && self->items[self->len] != MP_OBJ_NULL) {
+                    usqlite_cursor_t *cursor = MP_OBJ_TO_PTR(self->items[self->len -1]);
+                    if (cursor && cursor->stmt) {
+                        dest[0] = keys(cursor);
+                    }
+                }
                 break;
         }
     }

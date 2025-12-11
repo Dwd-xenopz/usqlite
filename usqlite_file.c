@@ -39,6 +39,13 @@ bool usqlite_file_exists(const char *pathname) {
     mp_obj_t ilistdir = usqlite_method(os, MP_QSTR_ilistdir);
 
     char path[MAXPATHNAME + 1];
+    size_t pathname_len = strlen(pathname);
+    
+    // Check if pathname fits in buffer
+    if (pathname_len >= MAXPATHNAME + 1) {
+        return false;  // Path too long
+    }
+    
     strcpy(path, pathname);
     const char *filename = pathname;
 
@@ -93,9 +100,11 @@ int usqlite_file_open(MPFILE *file, const char *pathname, int flags) {
     if (flags & SQLITE_OPEN_CREATE) {
         if (!usqlite_file_exists(pathname)) {
             *pMode++ = 'w';
+        }else {
+            *pMode++ = 'r'; // Open existing file for read/write
         }
-
         *pMode++ = '+';
+
     } else if (flags & SQLITE_OPEN_READWRITE) {
         *pMode++ = 'r';
         *pMode++ = '+';
@@ -113,7 +122,12 @@ int usqlite_file_open(MPFILE *file, const char *pathname, int flags) {
 
     mp_obj_t open = usqlite_method(&mp_module_io, MP_QSTR_open);
     file->stream = mp_call_function_2(open, filename, filemode);
-    strcpy(file->pathname, pathname);
+    
+    //Copy at most MAXPATHNAME - 1 characters
+    strncpy(file->pathname, pathname, MAXPATHNAME - 1);
+    // Ensure the very last byte is always null, preventing overrun reads
+    file->pathname[MAXPATHNAME - 1] = '\0';
+    
     file->flags = flags;
 
     // const mp_stream_p_t* stream = mp_get_stream(file->stream);
