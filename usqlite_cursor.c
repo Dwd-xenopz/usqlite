@@ -675,82 +675,82 @@ static void usqlite_cursor_attr(mp_obj_t self_in, qstr attr, mp_obj_t *dest)
             break;
         }
     }
+}
+// ------------------------------------------------------------------------------
 
-    // ------------------------------------------------------------------------------
+static mp_obj_t usqlite_cursor_del(mp_obj_t self_in)
+{
+    usqlite_cursor_t *self = MP_OBJ_TO_PTR(self_in);
 
-    static mp_obj_t usqlite_cursor_del(mp_obj_t self_in)
+    usqlite_logprintf(___FUNC___ "\n");
+
+    usqlite_cursor_close(self_in);
+    usqlite_connection_deregister(self->connection, self_in);
+
+    return mp_const_none;
+}
+
+MP_DEFINE_CONST_FUN_OBJ_1(usqlite_cursor_del_obj, usqlite_cursor_del);
+
+// ------------------------------------------------------------------------------
+
+static mp_obj_t usqlite_cursor_exit(size_t n_args, const mp_obj_t *args)
+{
+    usqlite_logprintf(___FUNC___ "\n");
+
+    usqlite_cursor_close(args[0]);
+
+    return mp_const_none;
+}
+
+static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(usqlite_cursor_exit_obj, 4, 4, usqlite_cursor_exit);
+
+// ------------------------------------------------------------------------------
+
+static const mp_rom_map_elem_t usqlite_cursor_locals_dict_table[] =
     {
-        usqlite_cursor_t *self = MP_OBJ_TO_PTR(self_in);
+        {MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&usqlite_cursor_del_obj)},
+        {MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&mp_identity_obj)},
+        {MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&usqlite_cursor_exit_obj)},
 
-        usqlite_logprintf(___FUNC___ "\n");
+        {MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&usqlite_cursor_close_obj)},
+        {MP_ROM_QSTR(MP_QSTR_execute), MP_ROM_PTR(&usqlite_cursor_execute_obj)},
+        {MP_ROM_QSTR(MP_QSTR_executemany), MP_ROM_PTR(&usqlite_cursor_executemany_obj)},
+        {MP_ROM_QSTR(MP_QSTR_fetchone), MP_ROM_PTR(&usqlite_cursor_fetchone_obj)},
+        {MP_ROM_QSTR(MP_QSTR_fetchmany), MP_ROM_PTR(&usqlite_cursor_fetchmany_obj)},
+        {MP_ROM_QSTR(MP_QSTR_fetchall), MP_ROM_PTR(&usqlite_cursor_fetchall_obj)},
+};
 
-        usqlite_cursor_close(self_in);
-        usqlite_connection_deregister(self->connection, self_in);
+MP_DEFINE_CONST_DICT(usqlite_cursor_locals_dict, usqlite_cursor_locals_dict_table);
 
-        return mp_const_none;
-    }
-
-    MP_DEFINE_CONST_FUN_OBJ_1(usqlite_cursor_del_obj, usqlite_cursor_del);
-
-    // ------------------------------------------------------------------------------
-
-    static mp_obj_t usqlite_cursor_exit(size_t n_args, const mp_obj_t *args)
-    {
-        usqlite_logprintf(___FUNC___ "\n");
-
-        usqlite_cursor_close(args[0]);
-
-        return mp_const_none;
-    }
-
-    static MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(usqlite_cursor_exit_obj, 4, 4, usqlite_cursor_exit);
-
-    // ------------------------------------------------------------------------------
-
-    static const mp_rom_map_elem_t usqlite_cursor_locals_dict_table[] =
-        {
-            {MP_ROM_QSTR(MP_QSTR___del__), MP_ROM_PTR(&usqlite_cursor_del_obj)},
-            {MP_ROM_QSTR(MP_QSTR___enter__), MP_ROM_PTR(&mp_identity_obj)},
-            {MP_ROM_QSTR(MP_QSTR___exit__), MP_ROM_PTR(&usqlite_cursor_exit_obj)},
-
-            {MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&usqlite_cursor_close_obj)},
-            {MP_ROM_QSTR(MP_QSTR_execute), MP_ROM_PTR(&usqlite_cursor_execute_obj)},
-            {MP_ROM_QSTR(MP_QSTR_executemany), MP_ROM_PTR(&usqlite_cursor_executemany_obj)},
-            {MP_ROM_QSTR(MP_QSTR_fetchone), MP_ROM_PTR(&usqlite_cursor_fetchone_obj)},
-            {MP_ROM_QSTR(MP_QSTR_fetchmany), MP_ROM_PTR(&usqlite_cursor_fetchmany_obj)},
-            {MP_ROM_QSTR(MP_QSTR_fetchall), MP_ROM_PTR(&usqlite_cursor_fetchall_obj)},
-        };
-
-    MP_DEFINE_CONST_DICT(usqlite_cursor_locals_dict, usqlite_cursor_locals_dict_table);
-
-    // ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 #if defined(MP_DEFINE_CONST_OBJ_TYPE)
-    static const mp_getiter_iternext_custom_t usqlite_getiter_iternext = {
+static const mp_getiter_iternext_custom_t usqlite_getiter_iternext = {
+    .getiter = usqlite_cursor_getiter,
+    .iternext = usqlite_cursor_iternext,
+};
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    usqlite_cursor_type,
+    MP_QSTR_Cursor,
+    MP_TYPE_FLAG_ITER_IS_CUSTOM,
+    make_new, usqlite_cursor_make_new,
+    print, usqlite_cursor_print,
+    attr, usqlite_cursor_attr,
+    iter, &usqlite_getiter_iternext,
+    locals_dict, &usqlite_cursor_locals_dict);
+#else
+const mp_obj_type_t usqlite_cursor_type =
+    {
+        {&mp_type_type},
+        .name = MP_QSTR_Cursor,
+        .print = usqlite_cursor_print,
+        .make_new = usqlite_cursor_make_new,
         .getiter = usqlite_cursor_getiter,
         .iternext = usqlite_cursor_iternext,
-    };
-
-    MP_DEFINE_CONST_OBJ_TYPE(
-        usqlite_cursor_type,
-        MP_QSTR_Cursor,
-        MP_TYPE_FLAG_ITER_IS_CUSTOM,
-        make_new, usqlite_cursor_make_new,
-        print, usqlite_cursor_print,
-        attr, usqlite_cursor_attr,
-        iter, &usqlite_getiter_iternext,
-        locals_dict, &usqlite_cursor_locals_dict);
-#else
-    const mp_obj_type_t usqlite_cursor_type =
-        {
-            {&mp_type_type},
-            .name = MP_QSTR_Cursor,
-            .print = usqlite_cursor_print,
-            .make_new = usqlite_cursor_make_new,
-            .getiter = usqlite_cursor_getiter,
-            .iternext = usqlite_cursor_iternext,
-            .locals_dict = (mp_obj_dict_t *)&usqlite_cursor_locals_dict,
-            .attr = &usqlite_cursor_attr};
+        .locals_dict = (mp_obj_dict_t *)&usqlite_cursor_locals_dict,
+        .attr = &usqlite_cursor_attr};
 #endif
 
-    // ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
